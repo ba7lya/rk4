@@ -1,5 +1,5 @@
 {
-  "builtin-baseline": "0cb95c860ea83aafc1b24350510b30dec535989a",
+  "builtin-baseline": "aeac3fa8d321bf9451d8dfacc62a476b5a956916",
   "dependencies": [
     "benchmark",
     "gtest",

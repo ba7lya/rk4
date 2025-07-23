@@ -2,11 +2,11 @@
 cmake_minimum_required(VERSION 3.21)
 
 # --- project ---
-project(ba7lya.xxxx LANGUAGES CXX)
+project(ba7lya.rk4 LANGUAGES CXX)
 
 # --- build options ---
 option(${PROJECT_NAME}_BUILD_BENCHMARK "Build the benchmark" OFF)
-option(${PROJECT_NAME}_BUILD_DEMO "Build demo programs" OFF)
+option(${PROJECT_NAME}_BUILD_DEMO "Build demo programs" ON)
 option(${PROJECT_NAME}_BUILD_DOC "Build Documentation" OFF)
 option(${PROJECT_NAME}_BUILD_TEST "Build Test" OFF)
 
@@ -31,41 +31,33 @@ endif()
 add_subdirectory(thirdparty)
 
 # --- target ---
-add_executable(${PROJECT_NAME})
+add_library(${PROJECT_NAME} INTERFACE)
 
 # --- include directory ---
 target_include_directories(
     ${PROJECT_NAME}
-    PRIVATE
-    ${PROJECT_SOURCE_DIR}/src/
-)
-
-# --- source files ---
-target_sources(
-    ${PROJECT_NAME}
-    PRIVATE
-    src/app.cxx
-    src/server.cxx
+    INTERFACE
+    ${PROJECT_SOURCE_DIR}/include/
 )
 
 # --- linakge ---
 target_link_libraries(
     ${PROJECT_NAME}
-    PUBLIC
+    INTERFACE
     spdlog::spdlog
 )
 
 # --- compile features ---
 target_compile_features(
     ${PROJECT_NAME}
-    PRIVATE
+    INTERFACE
     cxx_std_23
 )
 
 # --- compile options ---
 target_compile_options(
     ${PROJECT_NAME}
-    PRIVATE
+    INTERFACE
     "$<$<C_COMPILER_ID:MSVC>:/utf-8>"
     "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>"
 )
@@ -77,7 +69,7 @@ endif()
 
 # --- demo ---
 if(${PROJECT_NAME}_BUILD_DEMO)
-    add_subdirectory(demo)
+    add_subdirectory(examples)
 endif()
 
 # --- unit tests ---
