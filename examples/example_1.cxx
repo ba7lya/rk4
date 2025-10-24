@@ -20,8 +20,8 @@ using namespace ba7lya::rk4;
 int main(int argc, const char* argv[]) {
     constexpr double x0 = 0.0; // 初始x值
     constexpr double y0 = 1.0; // 初始y值
-    constexpr double h = 0.01; // 步长
-    constexpr int steps = 20;  // 迭代次数
+    constexpr double h = 0.1;  // 步长
+    constexpr int steps = 3;   // 迭代次数
 
     constexpr int rounds { 100 };
 
@@ -29,10 +29,10 @@ int main(int argc, const char* argv[]) {
     std::cout << "4阶龙格库塔方法计算结果:" << std::endl;
     double x = x0;
     double y = y0;
-    std::cout << "x,y" << std::endl;
+    std::cout << "x, f, y" << std::endl;
     for (size_t i = 0; i < rounds; i++) {
         rk(x, y, h, steps);
-        std::cout << x << "," << y << std::endl;
+        std::cout << x << "," << sin(x) + y0 << "," << y << std::endl;
     }
 
     return 0;
