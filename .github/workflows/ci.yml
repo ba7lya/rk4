@@ -7,9 +7,14 @@ on:
   workflow_dispatch:
 
 env:
-  # Pinned to the clang-format/clang-tidy version that formats this tree locally.
-  CLANG_VERSION: "23"
-  CLANG_FORMAT_VERSION: "23.1.1"
+  # Pinned to the exact clang-format/clang-tidy version that formats this tree
+  # locally (23.1.1). apt.llvm.org's toolchain-23 repo only carries newer
+  # 23.1.2 snapshots, whose clang-format already rejects config keys this tree
+  # uses (AlignCaseArrows was removed upstream), so the format job installs
+  # the version-exact pip wheels (published for manylinux + win_amd64) and the
+  # tidy job uses the version-exact GitHub release archives (no pip wheel
+  # exists for clang-tidy 23).
+  LLVM_VERSION: "23.1.1"
 
 jobs:
   build-test:
@@ -86,20 +91,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install pinned clang-format (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- "${CLANG_VERSION}"
-          echo "/usr/bin" >> "$GITHUB_PATH"
-          sudo ln -sf "clang-format-${CLANG_VERSION}" /usr/local/bin/clang-format
+      - name: Install pinned clang-format
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Install pinned clang-format (Windows)
+      - name: Install clang-format wheel (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 -m venv "$HOME/cfenv"
+          "$HOME/cfenv/bin/pip" install -q "clang-format==${LLVM_VERSION}"
+          echo "$HOME/cfenv/bin" >> "$GITHUB_PATH"
+
+      - name: Install clang-format wheel (Windows)
         if: runner.os == 'Windows'
-        run: pip install clang-format==${{ env.CLANG_FORMAT_VERSION }}
+        shell: bash
+        run: |
+          python -m venv "$HOME/cfenv"
+          "$HOME/cfenv/Scripts/pip" install -q "clang-format==${LLVM_VERSION}"
+          echo "$HOME/cfenv/Scripts" >> "$GITHUB_PATH"
 
       - name: Check formatting
         shell: bash
         run: |
+          clang-format --version
           files=$(git ls-files 'include/*.hxx' 'examples/*.cxx' 'tests/*.cxx' 'benchmark/*.cxx')
           [ -n "$files" ] || { echo "no files to check" >&2; exit 1; }
           clang-format --dry-run -Werror --style=file $files
@@ -115,23 +131,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache clang-tidy archive
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/llvm-cache
+          key: llvm-${{ env.LLVM_VERSION }}-${{ runner.os }}
+
       - name: Install pinned clang-tidy (Linux)
         if: runner.os == 'Linux'
+        shell: bash
         run: |
-          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- "${CLANG_VERSION}"
-          sudo ln -sf "clang-tidy-${CLANG_VERSION}" /usr/local/bin/clang-tidy
+          set -euo pipefail
+          asset="LLVM-${LLVM_VERSION}-Linux-X64.tar.xz"
+          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/${asset}"
+          mkdir -p "$RUNNER_TEMP/llvm-cache" "$HOME/tidyenv"
+          [ -f "$RUNNER_TEMP/llvm-cache/$asset" ] || curl -sSL --retry 3 -o "$RUNNER_TEMP/llvm-cache/$asset" "$url"
+          # The binary needs libLLVM/libclang-cpp (.so) and clang's resource
+          # headers (lib/clang/<ver>/include/stddef.h) to compile anything.
+          tar -xf "$RUNNER_TEMP/llvm-cache/$asset" -C "$HOME/tidyenv" --strip-components=1 \
+            --wildcards-match-slash --wildcards '*/bin/clang-tidy' '*/lib/*.so*' '*/lib/clang/*/include/*'
+          echo "$HOME/tidyenv/bin" >> "$GITHUB_PATH"
 
       - name: Install pinned clang-tidy (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          tag="clang+llvm-${CLANG_FORMAT_VERSION}-x86_64-pc-windows-msvc"
-          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_FORMAT_VERSION}/${tag}.zip"
-          curl -sSL -o llvm.zip "$url"
-          unzip -q llvm.zip -d "$LOCALAPPDATA/llvm-extract"
-          echo "$LOCALAPPDATA/llvm-extract/$tag/bin" >> "$GITHUB_PATH"
+          set -euo pipefail
+          asset="clang+llvm-${LLVM_VERSION}-x86_64-pc-windows-msvc.tar.xz"
+          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang%2Bllvm-${LLVM_VERSION}-x86_64-pc-windows-msvc.tar.xz"
+          mkdir -p "$RUNNER_TEMP/llvm-cache" "$HOME/tidyenv"
+          [ -f "$RUNNER_TEMP/llvm-cache/$asset" ] || curl -sSL --retry 3 -o "$RUNNER_TEMP/llvm-cache/$asset" "$url"
+          # bsdtar wildcards match '/' and prefixes directories implicitly;
+          # bin/ carries the exe + its DLLs, lib/clang/<ver>/include the resource headers.
+          /c/Windows/System32/tar.exe -xf "$RUNNER_TEMP/llvm-cache/$asset" -C "$HOME/tidyenv" \
+            --strip-components=1 "*/bin/*"
+          /c/Windows/System32/tar.exe -xf "$RUNNER_TEMP/llvm-cache/$asset" -C "$HOME/tidyenv" \
+            --strip-components=1 "*/lib/clang/*/include/*"
+          echo "$HOME/tidyenv/bin" >> "$GITHUB_PATH"
 
       - name: Lint public headers
         shell: bash
         run: |
+          clang-tidy --version
           clang-tidy --quiet $(git ls-files 'include/*.hxx') -- -std=c++23
