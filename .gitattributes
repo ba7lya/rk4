@@ -1,0 +1,23 @@
+# Normalize line endings: store LF in the repo, use platform native in the
+# working copy. clang-format's LineEnding (LF) then produces stable output
+# on every OS, so the CI format job cannot be broken by checkout eol.
+* text=auto
+
+*.hxx text eol=lf
+*.cxx text eol=lf
+*.h text eol=lf
+*.c text eol=lf
+*.txt text eol=lf
+*.cmake text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+.clang-format text eol=lf
+.clang-tidy text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+*.png binary
+*.jpg binary
+*.svg text eol=lf

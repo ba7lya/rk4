@@ -1,38 +1,39 @@
 ///
 /// @file example_1.cxx
 /// @author BA7LYA (1042140025@qq.com)
-/// @brief
+/// @brief Integrate dy/dx = cos(x) and compare against y = sin(x) + C.
 /// @version 0.1
 /// @date 2025-07-24
-/// @copyright Copyright (c) 2025
+/// @copyright Copyright (c) 2023-2025
+/// SPDX-License-Identifier: MIT
 ///
 
 #include <cmath>
+#include <cstddef>
 #include <iostream>
-#include <vector>
 
 #include "ba7lya/rk4/rk4.hxx"
 
-double ode(const double x, const double y) { return cos(x); }
+namespace rk4 = ba7lya::rk4;
 
-using namespace ba7lya::rk4;
+int main() {
+    constexpr double x0 = 0.0;          // initial x
+    constexpr double y0 = 1.0;          // initial y
+    constexpr double h = 0.1;           // step size
+    constexpr std::size_t steps = 3;    // steps per round
+    constexpr std::size_t rounds = 100; // number of rounds
 
-int main(int argc, const char* argv[]) {
-    constexpr double x0 = 0.0; // 初始x值
-    constexpr double y0 = 1.0; // 初始y值
-    constexpr double h = 0.1;  // 步长
-    constexpr int steps = 3;   // 迭代次数
+    // dy/dx = cos(x), exact solution y = sin(x) + y0
+    auto f = [](double x, double) noexcept { return std::cos(x); };
+    rk4::rk4 solver { f };
 
-    constexpr int rounds { 100 };
-
-    rk4 rk(ode);
-    std::cout << "4阶龙格库塔方法计算结果:" << std::endl;
+    std::cout << "4th-order Runge-Kutta results:" << '\n';
+    std::cout << "x, f, y" << '\n';
     double x = x0;
     double y = y0;
-    std::cout << "x, f, y" << std::endl;
-    for (size_t i = 0; i < rounds; i++) {
-        rk(x, y, h, steps);
-        std::cout << x << "," << sin(x) + y0 << "," << y << std::endl;
+    for (std::size_t i = 0; i < rounds; ++i) {
+        solver(x, y, h, steps);
+        std::cout << x << "," << std::sin(x) + y0 << "," << y << '\n';
     }
 
     return 0;

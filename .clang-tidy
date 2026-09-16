@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: MIT
+#
+# clang-tidy configuration for ba7lya.rk4.
+# The owner's naming convention is lower_case_with_underscores for
+# classes, functions, methods and variables, so the identifier-naming
+# checks are configured accordingly (clang-tidy defaults to camelBacked).
+
+# Disabled individually with reasons below (YAML folded scalars do not allow
+# comments inside them):
+#   portability-avoid-pragma-once   - '#pragma once' is idiomatic and supported
+#                                     by every compiler this project targets.
+#   readability-math-missing-parentheses / readability-magic-numbers /
+#   cppcoreguidelines-avoid-magic-numbers - the RK4 formula is clearer without
+#   synthetic parentheses around every term.
+#   bugprone-easily-swappable-parameters - (x, y, h) doubles are domain-fixed.
+#   misc-non-private-member-variables-in-classes - ode_ is private; rule is a false positive.
+#   modernize-use-trailing-return-type - conflicts with the project style.
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -misc-non-private-member-variables-in-classes,
+  -bugprone-easily-swappable-parameters,
+  -readability-math-missing-parentheses,
+  -portability-avoid-pragma-once
+
+WarningsAsErrors: >
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*
+
+HeaderFilterRegex: "(include|examples|tests|benchmark)/.*"
+
+CheckOptions:
+  # Single-letter math names (x, y, h, i) and RK4 slopes (k1..k4) are idiomatic for this library.
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: '^[xyhij]$'
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: '^[xyhij]$|^k[1-4]$'
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: lower_case
+  - key: readability-identifier-naming.StructCase
+    value: lower_case
+  - key: readability-identifier-naming.EnumCase
+    value: lower_case
+  - key: readability-identifier-naming.EnumConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.MethodCase
+    value: lower_case
+  - key: readability-identifier-naming.ConceptCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.StaticConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: _
+  - key: readability-identifier-naming.ProtectedMemberSuffix
+    value: _
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE

@@ -144,7 +144,7 @@ KeepEmptyLines:
   AtStartOfFile: false
 LambdaBodyIndentation: Signature
 Language: Cpp
-LineEnding: CRLF
+LineEnding: LF
 MacroBlockBegin: ""
 MacroBlockEnd: ""
 # Macros:

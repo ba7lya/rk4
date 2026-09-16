@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Pinned to the clang-format/clang-tidy version that formats this tree locally.
+  CLANG_VERSION: "23"
+  CLANG_FORMAT_VERSION: "23.1.1"
+
+jobs:
+  build-test:
+    name: Build & test (${{ matrix.os }} / ${{ matrix.config }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        config: [Debug, Release]
+
+    steps:
+      - name: Enable git long paths (Windows)
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: MSVC dev shell (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg_cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'thirdparty/vcpkg') }}
+
+      - name: Select preset
+        id: preset
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "name=MSVC-2022-x64-Ninja" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=GCC-linux-x64-Ninja" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure
+        shell: bash
+        run: >
+          cmake --preset "${{ steps.preset.outputs.name }}"
+          -Dba7lya.rk4_BUILD_TEST=ON
+          -Dba7lya.rk4_BUILD_BENCHMARK=ON
+        env:
+          VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.vcpkg_cache,readwrite"
+
+      - name: Build
+        shell: bash
+        run: cmake --build --preset "${{ steps.preset.outputs.name }}-${{ matrix.config }}"
+
+      - name: Test
+        shell: bash
+        run: |
+          preset_base=$(basename "${{ steps.preset.outputs.name }}" -Ninja)
+          ctest --preset "${preset_base}-Test" -C "${{ matrix.config }}" --output-on-failure
+
+      - name: Upload compile_commands.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-commands-${{ matrix.os }}-${{ matrix.config }}
+          path: build/compile_commands.json
+
+  clang-format:
+    name: clang-format
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned clang-format (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- "${CLANG_VERSION}"
+          echo "/usr/bin" >> "$GITHUB_PATH"
+          sudo ln -sf "clang-format-${CLANG_VERSION}" /usr/local/bin/clang-format
+
+      - name: Install pinned clang-format (Windows)
+        if: runner.os == 'Windows'
+        run: pip install clang-format==${{ env.CLANG_FORMAT_VERSION }}
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          files=$(git ls-files 'include/*.hxx' 'examples/*.cxx' 'tests/*.cxx' 'benchmark/*.cxx')
+          [ -n "$files" ] || { echo "no files to check" >&2; exit 1; }
+          clang-format --dry-run -Werror --style=file $files
+
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned clang-tidy (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- "${CLANG_VERSION}"
+          sudo ln -sf "clang-tidy-${CLANG_VERSION}" /usr/local/bin/clang-tidy
+
+      - name: Install pinned clang-tidy (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          tag="clang+llvm-${CLANG_FORMAT_VERSION}-x86_64-pc-windows-msvc"
+          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_FORMAT_VERSION}/${tag}.zip"
+          curl -sSL -o llvm.zip "$url"
+          unzip -q llvm.zip -d "$LOCALAPPDATA/llvm-extract"
+          echo "$LOCALAPPDATA/llvm-extract/$tag/bin" >> "$GITHUB_PATH"
+
+      - name: Lint public headers
+        shell: bash
+        run: |
+          clang-tidy --quiet $(git ls-files 'include/*.hxx') -- -std=c++23

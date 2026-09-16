@@ -7,6 +7,36 @@
   },
   "configurePresets": [
     {
+      "name": "GCC-linux-x64-Ninja",
+      "displayName": "GCC-linux-x64-Ninja",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_MAKE_PROGRAM": "ninja",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/thirdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "warnings": {
+        "dev": false,
+        "systemVars": true,
+        "uninitialized": true,
+        "unusedCli": true,
+        "deprecated": true
+      },
+      "errors": {
+        "dev": false,
+        "deprecated": true
+      }
+    },
+    {
       "name": "MSVC-2022-x86-Ninja",
       "displayName": "MSVC-2022-x86-Ninja",
       "generator": "Ninja Multi-Config",
@@ -218,6 +248,24 @@
     }
   ],
   "buildPresets": [
+    {
+      "name": "GCC-linux-x64-Debug",
+      "description": "",
+      "displayName": "",
+      "configuration": "Debug",
+      "configurePreset": "GCC-linux-x64-Ninja",
+      "cleanFirst": false,
+      "jobs": 4
+    },
+    {
+      "name": "GCC-linux-x64-Release",
+      "description": "",
+      "displayName": "",
+      "configuration": "Release",
+      "configurePreset": "GCC-linux-x64-Ninja",
+      "cleanFirst": false,
+      "jobs": 4
+    },
     {
       "name": "MSVC-2022-x86-Debug",
       "description": "",
@@ -436,6 +484,15 @@
     }
   ],
   "testPresets": [
+    {
+      "name": "GCC-linux-x64-Test",
+      "description": "",
+      "displayName": "",
+      "configurePreset": "GCC-linux-x64-Ninja",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
     {
       "name": "MSVC-2022-x86-Test",
       "description": "",
