@@ -10,7 +10,9 @@
 
 #include <cmath>
 #include <cstddef>
+#include <iomanip>
 #include <iostream>
+#include <string>
 
 #include "ba7lya/rk4/rk4.hxx"
 
@@ -27,13 +29,26 @@ int main() {
     auto f = [](double x, double) noexcept { return std::cos(x); };
     rk4::rk4 solver { f };
 
-    std::cout << "4th-order Runge-Kutta results:" << '\n';
-    std::cout << "x, f, y" << '\n';
+    std::cout << "=== dy/dx = cos(x), y(0) = " << y0 << " ===" << '\n';
+    std::cout << "step: " << h << ", rounds: " << rounds << ", steps per round: " << steps
+              << std::endl;
+    std::cout << std::setw(10) << "x" << std::setw(15) << "numerical sol." << std::setw(15)
+              << "analytic sol." << std::setw(15) << "abs err" << '\n';
+    std::cout << std::string(55, '-') << '\n';
+
     double x = x0;
     double y = y0;
+    std::cout << std::setw(10) << std::fixed << std::setprecision(3) << x << std::setw(15)
+              << std::setprecision(6) << y << std::setw(15) << std::sin(x) + y0 << std::setw(15)
+              << std::abs(y - (std::sin(x) + y0)) << '\n';
+
     for (std::size_t i = 0; i < rounds; ++i) {
         solver(x, y, h, steps);
-        std::cout << x << "," << std::sin(x) + y0 << "," << y << '\n';
+        const double exact = std::sin(x) + y0;
+        const double error = std::abs(y - exact);
+        std::cout << std::setw(10) << std::fixed << std::setprecision(3) << x << std::setw(15)
+                  << std::setprecision(6) << y << std::setw(15) << exact << std::setw(15) << error
+                  << '\n';
     }
 
     return 0;
