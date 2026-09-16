@@ -31,7 +31,7 @@ jobs:
         if: runner.os == 'Windows'
         run: git config --system core.longpaths true
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -40,7 +40,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.vcpkg_cache
           key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'thirdparty/vcpkg') }}
@@ -77,7 +77,7 @@ jobs:
         run: ctest --preset "${{ steps.preset.outputs.base }}-Test" -C "${{ matrix.config }}" --output-on-failure
 
       - name: Upload compile_commands.json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compile-commands-${{ matrix.os }}-${{ matrix.config }}
           path: build/compile_commands.json
@@ -91,10 +91,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install pinned clang-format
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -131,10 +131,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Cache clang-tidy archive
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/llvm-cache
           key: llvm-${{ env.LLVM_VERSION }}-${{ runner.os }}
