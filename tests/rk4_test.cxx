@@ -12,7 +12,7 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 
-#include "ba7lya/rk4/rk4.hxx"
+#include "rk4.hxx"
 
 namespace {
 

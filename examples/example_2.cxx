@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "ba7lya/rk4/rk4.hxx"
+#include "rk4.hxx"
 
 namespace rk4 = ba7lya::rk4;
 

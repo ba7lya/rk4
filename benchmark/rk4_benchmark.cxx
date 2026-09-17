@@ -11,7 +11,7 @@
 #include <benchmark/benchmark.h>
 #include <cstddef>
 
-#include "ba7lya/rk4/rk4.hxx"
+#include "rk4.hxx"
 
 namespace { using ba7lya::rk4::rk4; } // namespace
 

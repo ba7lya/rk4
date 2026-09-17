@@ -9,7 +9,7 @@ Header-only C++23 library, MIT licensed.
 ## Usage
 
 ```cpp
-#include "ba7lya/rk4/rk4.hxx"
+#include "rk4.hxx"
 
 // dy/dx = -y, y(0) = 1  →  y(x) = e^(-x)
 ba7lya::rk4::rk4 solver{[](double /*x*/, double y) noexcept { return -y; }};
