@@ -18,13 +18,33 @@ env:
 
 jobs:
   build-test:
-    name: ${{ matrix.os }}-${{ matrix.config }}
+    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.config }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        config: [Debug, Release]
+        include:
+          # Windows + MSVC
+          - os: windows-latest
+            compiler: msvc
+            config: Debug
+          - os: windows-latest
+            compiler: msvc
+            config: Release
+          # Linux + GCC
+          - os: ubuntu-latest
+            compiler: gcc
+            config: Debug
+          - os: ubuntu-latest
+            compiler: gcc
+            config: Release
+          # Linux + Clang
+          - os: ubuntu-latest
+            compiler: clang
+            config: Debug
+          - os: ubuntu-latest
+            compiler: clang
+            config: Release
 
     steps:
       - name: Enable git long paths (Windows)
@@ -39,6 +59,12 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Install Clang (Linux)
+        if: runner.os == 'Linux' && matrix.compiler == 'clang'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+
       - name: Restore vcpkg binary cache
         uses: actions/cache@v6
         with:
@@ -52,7 +78,11 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             configure="MSVC-2022-x64-Ninja"
           else
-            configure="GCC-linux-x64-Ninja"
+            if [ "${{ matrix.compiler }}" = "clang" ]; then
+              configure="Clang-linux-x64-Ninja"
+            else
+              configure="GCC-linux-x64-Ninja"
+            fi
           fi
           # Build/test presets are named after the configure preset minus the
           # "-Ninja" suffix: MSVC-2022-x64-Debug, GCC-linux-x64-Test, ...
@@ -79,7 +109,7 @@ jobs:
       - name: Upload compile_commands.json
         uses: actions/upload-artifact@v7
         with:
-          name: compile-commands-${{ matrix.os }}-${{ matrix.config }}
+          name: compile-commands-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.config }}
           path: build/compile_commands.json
 
   clang-format:
